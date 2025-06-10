@@ -1,17 +1,12 @@
 // require('dotenv').config({path: './env'})  not good for consistency of code
 
 import dotenv from 'dotenv'
-
-import mongoose from "mongoose";
-import { DB_NAME } from "./constants.js";
-
 dotenv.config({path: './env'})
 
-
 /*
-
 1st approach to connect database
-
+import mongoose from "mongoose";
+import { DB_NAME } from "./constants.js";
 import express from 'express'
 const app = express()
 
@@ -30,11 +25,21 @@ const app = express()
         throw error
     }
 })();
-
 */
 
 // 2nd approach --> write code in other folder and import from there --> clean code, modular
 
 import connectDB from "./db/index.js";
+import { app } from './app.js';
 
-connectDB()
+connectDB().then(()=>{
+    app.listen(process.env.PORT || 8000 , ()=>{
+        console.log(`listening on port ${process.env.PORT}`)
+    });
+    app.on("error", (error)=>{
+        console.log("app crashed:: ", error);
+    });
+})
+.catch((error) => {
+    console.log("Error in dayabase connection :: ./src/index.js:: ", error)
+});
