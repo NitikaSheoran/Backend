@@ -1,16 +1,22 @@
+// Web framework for building APIs and servers in Node.js.
 import express from 'express'
+
+// Middleware to parse cookies from incoming HTTP requests
 import cookieParser from 'cookie-parser';
+
+// Middleware to enable Cross-Origin Resource Sharing (CORS), which allows your backend to respond to requests from different origins
 import cors from 'cors'
 
-
+// Initializes an Express application instance
 const app = express();
 
 
 app.use(cors({
     origin: process.env.CORS_ORIGIN,
-    extended: true
+    credentials: true
 }))
 
+// Parses incoming JSON requests
 app.use(express.json({
     limit: "16kb"
 }))

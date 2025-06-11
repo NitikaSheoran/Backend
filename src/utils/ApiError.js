@@ -1,3 +1,5 @@
+
+//  useful for standardizing error responses in an API
 class ApiError extends Error{
     constructor(statusCode, message="Something went wrong", errors = [], stack=""){
         super(message)
