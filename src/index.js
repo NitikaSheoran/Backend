@@ -1,7 +1,7 @@
 // require('dotenv').config({path: './env'})  not good for consistency of code
 
 import dotenv from 'dotenv'
-dotenv.config({path: './env'})
+dotenv.config({path: './.env'})
 
 /*
 1st approach to connect database
