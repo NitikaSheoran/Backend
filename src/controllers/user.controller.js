@@ -112,26 +112,39 @@ const loginUser = asyncHandler(async (req, res)=>{
     // successfull login
 
     const {email, userName, password} = req.body
+    console.log("email::", email, "  password:: ", password, "  username:: ", userName)
+
 
     if(!userName && !email){
         throw new ApiError(400, "enter either userName or email")
     }
+    console.log("Atleast one credential present")
+
+
     const existedUser = await User.findOne({
         $or : [{userName}, {email}]
     })
     if(!existedUser){
         throw new ApiError(400, "User does not exist")
     }
+    console.log("one user with same credentials availabel")
+
+
     const isPasswordValid = await existedUser.isPasswordCorrect(password)
     if(!isPasswordValid){
         throw new ApiError(401, "Invalid password");
     }
+    console.log("valid password")
+
+
     const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(existedUser._id)
+    console.log("access and refresh token generated")
+
 
     const loggedInUser = await User.findById(existedUser._id).select(
         "-password -refreshToken"
     )
-    
+    console.log("logged in user:: ", loggedInUser)
 
     //cookies 
     const options = {
@@ -154,6 +167,7 @@ const loginUser = asyncHandler(async (req, res)=>{
 })
 
 const logoutUser = asyncHandler(async (req, res) => {
+    // available bec of middleware
     const id = req.user._id
     await User.findByIdAndUpdate(
         id,

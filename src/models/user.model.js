@@ -57,10 +57,10 @@ userSchema.pre("save", async function(next){  //cant use arrow function as it do
 
 
 //  custom methods
-userSchema.method.isPasswordCorrect = async function(password){
+userSchema.methods.isPasswordCorrect = async function(password){
     return await bcrypt.compare(password, this.password)
 }
-userSchema.method.generateAccessToken = function(){
+userSchema.methods.generateAccessToken = function(){
     return jws.sign(
         {
             _id : this._id,
@@ -74,7 +74,7 @@ userSchema.method.generateAccessToken = function(){
         }
     )
 }
-userSchema.method.generateRefreshToken = function(){
+userSchema.methods.generateRefreshToken = function(){
     return jws.sign(
         {
             _id : this._id,
