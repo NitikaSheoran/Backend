@@ -4,7 +4,7 @@ import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
-
+import mongoose from "mongoose";
 // generate tokens
 const generateAccessAndRefreshTokens = async(userId)=>{
     try{
@@ -320,21 +320,23 @@ const updateCoverImage = asyncHandler( async (req, res)=>{
 
 
 // user Details
-const getUserChannelProfile = asyncHandler(async (req, res)=>{
-    const {userName} = req.params;
-    if(!userName){
-        throw new ApiError(400, "username missing in params");
+
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+    const { userName } = req.params;
+
+    if (!userName) {
+        throw new ApiError(400, "Username missing in params");
     }
 
     const channel = await User.aggregate([
         {
-            $match : {
+            $match: {
                 userName: userName.toLowerCase()
-            }   
+            }
         },
         {
             $lookup: {
-                from: "subscribtions",
+                from: "subscriptions", // ✅ fixed collection name
                 localField: "_id",
                 foreignField: "channel",
                 as: "subscribers"
@@ -342,7 +344,7 @@ const getUserChannelProfile = asyncHandler(async (req, res)=>{
         },
         {
             $lookup: {
-                from: "subscribtions",
+                from: "subscriptions", // ✅ fixed collection name
                 localField: "_id",
                 foreignField: "subscriber",
                 as: "subscribedTo"
@@ -350,12 +352,8 @@ const getUserChannelProfile = asyncHandler(async (req, res)=>{
         },
         {
             $addFields: {
-                subscriberCount: {
-                    $size: "$subscribers"
-                },
-                channelsSubscribedToCount: {
-                    $size: "$subscribedTo"
-                }
+                subscriberCount: { $size: "$subscribers" },
+                channelsSubscribedToCount: { $size: "$subscribedTo" }
             }
         },
         {
@@ -363,31 +361,30 @@ const getUserChannelProfile = asyncHandler(async (req, res)=>{
                 fullName: 1,
                 userName: 1,
                 email: 1,
-                subscriberCount: 1,
-                channelsSubscribedToCount: 1,
                 coverImage: 1,
                 avatar: 1,
-                isSubscribed: 1,
-                subscribers: 1
+                subscriberCount: 1,
+                channelsSubscribedToCount: 1,
+                subscribers: 1 // keep only for computing `isSubscribed`
             }
         }
-    ])
+    ]);
 
-    if(!channel?.length){
-        throw new ApiError(404, "channel does not exist")
+    if (!channel?.length) {
+        throw new ApiError(404, "Channel does not exist");
     }
 
     const isSubscribed = channel[0].subscribers.some(
         (s) => s.subscriber.toString() === req.user?._id.toString()
     );
 
-    delete channel[0].subscribers; // optional cleanup
+    delete channel[0].subscribers;
     channel[0].isSubscribed = isSubscribed;
 
     return res.status(200).json(
         new ApiResponse(200, channel[0], "User channel fetched")
-    )
-})
+    );
+});
 
 
 // user video history
@@ -403,7 +400,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
             $lookup: {
                 from: "videos",
                 localField: "watchHistory",
-                foreighField: "_id",
+                foreignField: "_id",
                 as: "watch_history",
                 pipeline: [
                     {
