@@ -370,9 +370,6 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         }
     ]);
 
-    if (!channel?.length) {
-        throw new ApiError(404, "Channel does not exist");
-    }
 
     const isSubscribed = channel[0].subscribers.some(
         (s) => s.subscriber.toString() === req.user?._id.toString()
