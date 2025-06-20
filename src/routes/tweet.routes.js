@@ -7,6 +7,7 @@ router.use(verifyJWT)
 // upload tweet
 router.route("/").post(createTweet);
 
+
 // get tweet
 router.route("/user/:userId").get(getUserTweets)
 
