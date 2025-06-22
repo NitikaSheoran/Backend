@@ -4,11 +4,13 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 
+
 const getVideoComments = asyncHandler(async (req, res) => {
-    const {videoId} = req.params
-    const {page = 1, limit = 10} = req.query
-    if(!isValidObjectId(videoId)){
-        throw new ApiError(400, "invalid videoid")
+    const { videoId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video ID");
     }
 
     const comments = await Comment.aggregate([
@@ -18,10 +20,10 @@ const getVideoComments = asyncHandler(async (req, res) => {
             }
         },
         {
-            $sort: {createdAt: -1} //latest first
+            $sort: { createdAt: -1 }
         },
         {
-            $skip: (parseInt(page)-1)*parseInt(limit)
+            $skip: (parseInt(page) - 1) * parseInt(limit)
         },
         {
             $limit: parseInt(limit)
@@ -46,9 +48,9 @@ const getVideoComments = asyncHandler(async (req, res) => {
             $unwind: "$ownerDetails"
         },
         {
-            $addFields: {
-                ownerDetails: "$ownerDetails",
-                videoDetails: "$videoDetails"
+            $unwind: {
+                path: "$videoDetails",
+                preserveNullAndEmptyArrays: true
             }
         },
         {
@@ -57,24 +59,23 @@ const getVideoComments = asyncHandler(async (req, res) => {
                 content: 1,
                 createdAt: 1,
                 video: 1,
-                videoDetails: {
-                    $arrayElementAt: ["$videoDetails", 0]
-                },
+                videoDetails: 1,
                 ownerDetails: {
-                    _id: 1,
-                    userName: 1,
-                    fullName: 1,
-                    avatar: 1
+                    _id: "$ownerDetails._id",
+                    userName: "$ownerDetails.userName",
+                    fullName: "$ownerDetails.fullName",
+                    avatar: "$ownerDetails.avatar"
                 }
             }
         }
-    ])
+    ]);
 
     return res.status(200).json(
-        new ApiResponse(200, comments, "comments")
-    )
+        new ApiResponse(200, comments, "Comments fetched successfully")
+    );
+});
 
-})
+
 
 const addComment = asyncHandler(async (req, res) => {
     // TODO: add a comment to a video

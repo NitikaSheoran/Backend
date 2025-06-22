@@ -1,17 +1,99 @@
 import mongoose, { isValidObjectId } from "mongoose";
 import { Video } from "../models/video.model.js";
 import { User } from "../models/user.model.js";
+import {Subscription} from "../models/subscribtion.model.js"
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    
+    const id = req.user?._id;
+    const videos = await Video.aggregate([
+        {
+            $match: {
+                owner: id
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails"
+            }
+        },
+        {
+            $project: {
+                videoFile: 1,
+                thumbnail: 1,
+                title: 1,
+                description: 1,
+                duration: 1,
+                views: 1,
+                isPublished:1,
+                owner: {
+                    userName: "$ownerDetails.userName",
+                    email: "$ownerDetails.email",
+                    avatar: "$ownerDetails.avatar"
+                }
+            }
+        }
+    ])
+
+    return res.status(200).json(
+        new ApiResponse(200, videos, "videos uploaded by logged in user")
+    )
 });
+
+const allVideosOfSubscribers = asyncHandler(async (req, res) => {
+    const id = req.user.id;
+    const subscribtions = await Subscription.find({subscriber: id}).select("channel");
+    const channels = subscribtions.map((s)=>s.channel);
+
+    const videos = await Video.aggregate([
+        {
+            $match: {
+                owner: {$in: channels}
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails"
+            }
+        },
+        {
+            $unwind: "$ownerDetails"
+        },
+        {
+            $project: {
+                videoFile: 1,
+                thumbnail: 1,
+                title: 1,
+                description: 1,
+                duration: 1,
+                views: 1,
+                isPublished:1,
+                owner: {
+                    userName: "$ownerDetails.userName",
+                    email: "$ownerDetails.email",
+                    avatar: "$ownerDetails.avatar"
+                }
+            }
+        }
+    ])
+    return res.status(200).json(
+        new ApiResponse(200, videos, "videos uploaded by channels logged in user has subscribed")
+    )
+})
 
 const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description } = req.body;
+
+    console.log("title: ", title, "  desc: ", description);
 
     const videoFile = req.files?.videoFile?.[0];
     const thumbnail = req.files?.thumbnail?.[0];
@@ -19,9 +101,13 @@ const publishAVideo = asyncHandler(async (req, res) => {
     if (!title || !description || !videoFile || !thumbnail) {
         throw new ApiError(400, "All fields (title, description, videoFile, thumbnail) are required");
     }
+    console.log("all parameters recieved");
+
 
     const uploadedVideo = await uploadOnCloudinary(videoFile.path);
+    console.log("video uploaded on cloudinary")
     const uploadedThumbnail = await uploadOnCloudinary(thumbnail.path);
+    console.log("thumbnail uploaded on cloudinary");
 
     const video = await Video.create({
         title,
@@ -120,6 +206,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
 export {
     getAllVideos,
+    allVideosOfSubscribers,
     publishAVideo,
     getVideoById,
     updateVideo,
